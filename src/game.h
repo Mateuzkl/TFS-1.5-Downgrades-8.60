@@ -398,6 +398,7 @@ class Game
 		void playerSay(uint32_t playerId, uint16_t channelId, SpeakClasses type, const std::string& receiver, const std::string& text);
 		void playerChangeOutfit(uint32_t playerId, Outfit_t outfit);
 		void playerInviteToParty(uint32_t playerId, uint32_t invitedId);
+		void playerToggleMount(uint32_t playerId, bool mount);
 		void playerJoinParty(uint32_t playerId, uint32_t leaderId);
 		void playerRevokePartyInvitation(uint32_t playerId, uint32_t invitedId);
 		void playerPassPartyLeadership(uint32_t playerId, uint32_t newLeaderId);
@@ -497,6 +498,7 @@ class Game
 
 		Groups groups;
 		Map map;
+		Mounts mounts;
 		Raids raids;
 		Quests quests;
 

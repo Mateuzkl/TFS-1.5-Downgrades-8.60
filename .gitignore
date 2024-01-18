@@ -185,3 +185,4 @@ pip-log.txt
 ## TFS / OT
 #############
 config.lua
+src/script.cpp

@@ -774,6 +774,7 @@ Outfit_t LuaScriptInterface::getOutfit(lua_State* L, int32_t arg)
 {
 	Outfit_t outfit;
 	outfit.lookAddons = getField<uint8_t>(L, arg, "lookAddons");
+	outfit.lookMount = getField<uint16_t>(L, arg, "lookMount");
 
 	outfit.lookFeet = getField<uint8_t>(L, arg, "lookFeet");
 	outfit.lookLegs = getField<uint8_t>(L, arg, "lookLegs");
@@ -959,6 +960,7 @@ void LuaScriptInterface::pushOutfit(lua_State* L, const Outfit_t& outfit)
 	setField(L, "lookLegs", outfit.lookLegs);
 	setField(L, "lookFeet", outfit.lookFeet);
 	setField(L, "lookAddons", outfit.lookAddons);
+	setField(L, "lookMount", outfit.lookMount);
 }
 
 void LuaScriptInterface::pushOutfit(lua_State* L, const Outfit* outfit)
@@ -1878,6 +1880,7 @@ void LuaScriptInterface::registerFunctions()
 	registerEnum(RELOAD_TYPE_GLOBALEVENTS)
 	registerEnum(RELOAD_TYPE_ITEMS)
 	registerEnum(RELOAD_TYPE_MONSTERS)
+	registerEnum(RELOAD_TYPE_MOUNTS)
 	registerEnum(RELOAD_TYPE_MOVEMENTS)
 	registerEnum(RELOAD_TYPE_NPCS)
 	registerEnum(RELOAD_TYPE_QUESTS)
@@ -2416,6 +2419,10 @@ void LuaScriptInterface::registerFunctions()
 	registerMethod("Player", "hasOutfit", LuaScriptInterface::luaPlayerHasOutfit);
 	registerMethod("Player", "canWearOutfit", LuaScriptInterface::luaPlayerCanWearOutfit);
 	registerMethod("Player", "sendOutfitWindow", LuaScriptInterface::luaPlayerSendOutfitWindow);
+	
+	registerMethod("Player", "addMount", LuaScriptInterface::luaPlayerAddMount);
+	registerMethod("Player", "removeMount", LuaScriptInterface::luaPlayerRemoveMount);
+	registerMethod("Player", "hasMount", LuaScriptInterface::luaPlayerHasMount);
 
 	registerMethod("Player", "getPremiumEndsAt", LuaScriptInterface::luaPlayerGetPremiumEndsAt);
 	registerMethod("Player", "setPremiumEndsAt", LuaScriptInterface::luaPlayerSetPremiumEndsAt);
@@ -9335,6 +9342,79 @@ int LuaScriptInterface::luaPlayerSendOutfitWindow(lua_State* L)
 	return 1;
 }
 
+int LuaScriptInterface::luaPlayerAddMount(lua_State* L) {
+	// player:addMount(mountId or mountName)
+	Player* player = getUserdata<Player>(L, 1);
+	if (!player) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	uint8_t mountId;
+	if (isNumber(L, 2)) {
+		mountId = getNumber<uint8_t>(L, 2);
+	}
+	else {
+		Mount* mount = g_game.mounts.getMountByName(getString(L, 2));
+		if (!mount) {
+			lua_pushnil(L);
+			return 1;
+		}
+		mountId = mount->id;
+	}
+	pushBoolean(L, player->tameMount(mountId));
+	return 1;
+}
+
+int LuaScriptInterface::luaPlayerRemoveMount(lua_State* L) {
+	// player:removeMount(mountId or mountName)
+	Player* player = getUserdata<Player>(L, 1);
+	if (!player) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	uint8_t mountId;
+	if (isNumber(L, 2)) {
+		mountId = getNumber<uint8_t>(L, 2);
+	}
+	else {
+		Mount* mount = g_game.mounts.getMountByName(getString(L, 2));
+		if (!mount) {
+			lua_pushnil(L);
+			return 1;
+		}
+		mountId = mount->id;
+	}
+	pushBoolean(L, player->untameMount(mountId));
+	return 1;
+}
+
+int LuaScriptInterface::luaPlayerHasMount(lua_State* L) {
+	// player:hasMount(mountId or mountName)
+	const Player* player = getUserdata<const Player>(L, 1);
+	if (!player) {
+		lua_pushnil(L);
+		return 1;
+	}
+
+	Mount* mount = nullptr;
+	if (isNumber(L, 2)) {
+		mount = g_game.mounts.getMountByID(getNumber<uint8_t>(L, 2));
+	}
+	else {
+		mount = g_game.mounts.getMountByName(getString(L, 2));
+	}
+
+	if (mount) {
+		pushBoolean(L, player->hasMount(mount));
+	}
+	else {
+		lua_pushnil(L);
+	}
+	return 1;
+}
+
 int LuaScriptInterface::luaPlayerGetPremiumEndsAt(lua_State* L)
 {
 	// player:getPremiumEndsAt()
@@ -12542,11 +12622,12 @@ int LuaScriptInterface::luaConditionSetFormula(lua_State* L)
 int LuaScriptInterface::luaConditionSetOutfit(lua_State* L)
 {
 	// condition:setOutfit(outfit)
-	// condition:setOutfit(lookTypeEx, lookType, lookHead, lookBody, lookLegs, lookFeet[, lookAddons])
+// condition:setOutfit(lookTypeEx, lookType, lookHead, lookBody, lookLegs, lookFeet[, lookAddons[, lookMount]])
 	Outfit_t outfit;
 	if (isTable(L, 2)) {
 		outfit = getOutfit(L, 2);
 	} else {
+		outfit.lookMount = getNumber<uint16_t>(L, 9, outfit.lookMount);
 		outfit.lookAddons = getNumber<uint8_t>(L, 8, outfit.lookAddons);
 		outfit.lookFeet = getNumber<uint8_t>(L, 7);
 		outfit.lookLegs = getNumber<uint8_t>(L, 6);
